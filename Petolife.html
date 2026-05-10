@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetOlife — The Pet Identity Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --warm-white: #FDFAF4;
+    --ink: #1A1612;
+    --bark: #3D2B1F;
+    --amber: #C8821A;
+    --amber-light: #E8A83A;
+    --sage: #4A6741;
+    --sage-light: #7A9B71;
+    --terra: #B85C38;
+    --terra-light: #D4785A;
+    --muted: #8A7F74;
+    --border: rgba(61,43,31,0.12);
+    --glass: rgba(245,240,232,0.6);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Instrument Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 10px; height: 10px;
+    background: var(--amber);
+    border-radius: 50%;
+    position: fixed; top:0; left:0;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform 0.08s ease, background 0.2s ease;
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--amber);
+    border-radius: 50%;
+    position: fixed; top:0; left:0;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: transform 0.18s ease, width 0.2s, height 0.2s, opacity 0.2s;
+    opacity: 0.6;
+  }
+  body:hover .cursor { transform: translate(-50%,-50%) scale(1); }
+
+  /* Noise texture overlay */
+  body::before {
+    content:'';
+    position: fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:1000;
+    opacity: 0.35;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top:0; left:0; right:0;
+    z-index: 500;
+    display: flex; align-items:center; justify-content:space-between;
+    padding: 20px 48px;
+    backdrop-filter: blur(12px);
+    background: rgba(245,240,232,0.82);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    display: flex; align-items:center; gap:10px;
+    font-family: 'Fraunces', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--bark);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+  }
+  .nav-logo span { color: var(--amber); }
+  .paw-icon {
+    width:28px; height:28px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .nav-links {
+    display: flex; gap:32px; list-style:none;
+    font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 500;
+  }
+  .nav-links a { color: var(--muted); text-decoration:none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--bark); }
+  .nav-cta {
+    background: var(--bark);
+    color: var(--cream) !important;
+    padding: 9px 20px;
+    border-radius: 40px;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--amber) !important; color: var(--ink) !important; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    overflow: hidden;
+    padding-top: 80px;
+  }
+  .hero-left {
+    display: flex; flex-direction:column; justify-content:center;
+    padding: 80px 64px 80px 64px;
+    position: relative; z-index:2;
+  }
+  .hero-tag {
+    display: inline-flex; align-items:center; gap:8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 6px 14px; border-radius: 40px;
+    width: fit-content;
+    margin-bottom: 32px;
+    animation: fadeSlideUp 0.8s ease both;
+  }
+  .hero-tag::before { content:'●'; font-size:0.5em; animation: pulse 2s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes fadeSlideUp {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(3.2rem, 5.5vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--bark);
+    margin-bottom: 28px;
+    animation: fadeSlideUp 0.9s 0.1s ease both;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--amber);
+    display: block;
+  }
+  .hero-title .outline {
+    -webkit-text-stroke: 2px var(--bark);
+    color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem; line-height: 1.65;
+    color: var(--muted);
+    max-width: 420px;
+    margin-bottom: 48px;
+    animation: fadeSlideUp 1s 0.2s ease both;
+    font-weight: 400;
+  }
+
+  .hero-actions {
+    display: flex; gap:16px; align-items:center;
+    animation: fadeSlideUp 1s 0.3s ease both;
+  }
+  .btn-primary {
+    background: var(--amber);
+    color: var(--ink);
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-weight: 600; font-size: 0.92rem;
+    text-decoration: none;
+    transition: all 0.25s;
+    display: flex; align-items:center; gap:8px;
+    border: 2px solid var(--amber);
+  }
+  .btn-primary:hover {
+    background: var(--bark); color: var(--cream); border-color: var(--bark);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(61,43,31,0.18);
+  }
+  .btn-ghost {
+    color: var(--bark); font-size:0.88rem; font-weight:500;
+    text-decoration: none; display:flex; align-items:center; gap:6px;
+    transition: gap 0.2s;
+  }
+  .btn-ghost:hover { gap: 12px; }
+
+  .hero-stats {
+    display: flex; gap:40px; margin-top:56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    animation: fadeSlideUp 1s 0.4s ease both;
+  }
+  .stat-num {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem; font-weight: 900;
+    color: var(--bark); line-height:1;
+  }
+  .stat-label {
+    font-size: 0.75rem; color: var(--muted); text-transform:uppercase;
+    letter-spacing:0.08em; margin-top:4px; font-family:'DM Mono',monospace;
+  }
+
+  /* Hero right - visual */
+  .hero-right {
+    position: relative; overflow:hidden;
+    display: flex; align-items:center; justify-content:center;
+  }
+  .hero-bg-circle {
+    position: absolute;
+    width: 72%; padding-bottom: 72%;
+    border-radius: 50%;
+    background: radial-gradient(135deg, #E8D5B0 0%, #C8A87A 40%, #A06820 100%);
+    top: 50%; left:50%;
+    transform: translate(-50%,-50%);
+    z-index:0;
+  }
+  .hero-card-stack {
+    position: relative; z-index:2;
+    width: 340px;
+    animation: floatCard 6s ease-in-out infinite;
+  }
+  @keyframes floatCard {
+    0%,100% { transform:translateY(0) rotate(0deg); }
+    50%      { transform:translateY(-14px) rotate(1deg); }
+  }
+
+  /* Pet ID Card */
+  .pet-id-card {
+    background: var(--warm-white);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 32px 80px rgba(61,43,31,0.22), 0 8px 24px rgba(61,43,31,0.08);
+    border: 1px solid rgba(255,255,255,0.8);
+    position: relative; overflow:hidden;
+  }
+  .pet-id-card::before {
+    content:'';
+    position: absolute; top:0; left:0; right:0; height:5px;
+    background: linear-gradient(90deg, var(--amber), var(--terra), var(--sage));
+    border-radius: 24px 24px 0 0;
+  }
+  .card-header {
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:20px;
+  }
+  .card-logo { font-family:'Fraunces',serif; font-size:0.8rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
+  .card-badge {
+    background: var(--sage); color:#fff;
+    font-family:'DM Mono',monospace; font-size:0.65rem;
+    padding: 4px 10px; border-radius:20px; letter-spacing:0.08em;
+  }
+  .card-pet-row {
+    display:flex; gap:16px; align-items:center; margin-bottom:20px;
+  }
+  .pet-avatar {
+    width:64px; height:64px; border-radius:50%;
+    background: linear-gradient(135deg,#F0D5A0,#C8821A);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2rem; flex-shrink:0;
+    border: 3px solid var(--cream);
+    box-shadow: 0 4px 16px rgba(200,130,26,0.3);
+  }
+  .pet-name { font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700; color:var(--bark); }
+  .pet-breed { font-size:0.78rem; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+  .pet-id-num { font-size:0.7rem; color:var(--amber); margin-top:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; }
+
+  .card-data-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;
+  }
+  .data-chip {
+    background: var(--cream);
+    border-radius:10px; padding:10px 12px;
+    border: 1px solid var(--border);
+  }
+  .data-chip-label { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .data-chip-value { font-size:0.85rem; font-weight:600; color:var(--bark); margin-top:2px; }
+
+  .card-pulse-bar {
+    height:36px; border-radius:10px; overflow:hidden;
+    background: var(--cream); border:1px solid var(--border);
+    display:flex; align-items:center; padding:0 12px; gap:4px;
+    margin-bottom:14px;
+  }
+  .pulse-label { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--sage); text-transform:uppercase; letter-spacing:0.06em; flex-shrink:0; }
+  .pulse-waves {
+    flex:1; display:flex; align-items:center; gap:2px; height:100%;
+  }
+  .pw {
+    width:3px; border-radius:2px;
+    background: var(--sage-light);
+    animation: pwave 1.2s ease-in-out infinite;
+  }
+  .pw:nth-child(2){animation-delay:0.1s;height:40%}
+  .pw:nth-child(3){animation-delay:0.2s;height:80%}
+  .pw:nth-child(4){animation-delay:0.15s;height:55%}
+  .pw:nth-child(5){animation-delay:0.25s;height:90%}
+  .pw:nth-child(6){animation-delay:0.05s;height:45%}
+  .pw:nth-child(7){animation-delay:0.3s;height:70%}
+  .pw:nth-child(8){animation-delay:0.1s;height:50%}
+  .pw:nth-child(9){animation-delay:0.2s;height:85%}
+  .pw:nth-child(10){animation-delay:0.15s;height:40%}
+  .pw:nth-child(11){animation-delay:0.25s;height:60%}
+  .pw:nth-child(12){animation-delay:0.0s;height:35%}
+  @keyframes pwave {
+    0%,100%{transform:scaleY(1);opacity:0.5}
+    50%{transform:scaleY(1.5);opacity:1}
+  }
+
+  .card-footer { display:flex; justify-content:space-between; align-items:center; }
+  .card-owners { display:flex; gap:-8px; }
+  .owner-dot {
+    width:26px; height:26px; border-radius:50%;
+    border:2px solid var(--warm-white);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.7rem; font-weight:600;
+    margin-left:-8px;
+  }
+  .owner-dot:first-child{margin-left:0; background:#C8821A; color:#fff;}
+  .owner-dot:nth-child(2){background:#4A6741; color:#fff;}
+  .owner-dot:nth-child(3){background:#B85C38; color:#fff;}
+  .owner-label { font-size:0.72rem; color:var(--muted); font-family:'DM Mono',monospace; margin-left:10px; align-self:center; }
+  .card-qr {
+    width:36px;height:36px; display:grid; grid-template-columns:repeat(5,1fr); gap:1.5px;
+  }
+  .qr-cell { background:var(--bark); border-radius:1px; }
+  .qr-cell.e { background:transparent; }
+
+  /* Floating badges */
+  .float-badge {
+    position:absolute; background:var(--warm-white);
+    border-radius:14px; padding:10px 14px;
+    box-shadow: 0 8px 32px rgba(61,43,31,0.15);
+    border:1px solid var(--border);
+    display:flex; align-items:center; gap:8px;
+    font-size:0.78rem; font-weight:500; color:var(--bark);
+    white-space:nowrap;
+    z-index:3;
+  }
+  .fb-icon { font-size:1.1rem; }
+  .fb1 { top:18%; right:-5%; animation: floatBadge1 5s ease-in-out infinite; }
+  .fb2 { bottom:22%; left:-8%; animation: floatBadge2 6s 1s ease-in-out infinite; }
+  .fb3 { top:55%; right:-12%; animation: floatBadge1 7s 0.5s ease-in-out infinite; }
+  @keyframes floatBadge1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  @keyframes floatBadge2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+  .badge-dot { width:6px;height:6px;border-radius:50%;background:var(--sage); display:inline-block; animation:pulse 2s infinite; }
+
+  /* SECTION SHARED */
+  section { position:relative; }
+  .section-label {
+    font-family:'DM Mono',monospace; font-size:0.72rem;
+    text-transform:uppercase; letter-spacing:0.14em;
+    color:var(--amber); margin-bottom:14px;
+  }
+  .section-title {
+    font-family:'Fraunces',serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height:1.05; letter-spacing:-0.02em;
+    color:var(--bark);
+  }
+
+  /* HOW IT WORKS */
+  .how {
+    padding: 120px 64px;
+    background: var(--warm-white);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .how-header { max-width:560px; margin-bottom:72px; }
+  .how-steps {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:2px; position:relative;
+  }
+  .how-steps::before {
+    content:'';
+    position:absolute; top:56px; left:10%; right:10%; height:1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    z-index:0;
+  }
+  .step {
+    padding:28px 24px;
+    background:var(--cream);
+    border:1px solid var(--border);
+    border-radius:20px;
+    position:relative; z-index:1;
+    transition: all 0.3s;
+  }
+  .step:hover { transform:translateY(-6px); box-shadow:0 20px 60px rgba(61,43,31,0.1); }
+  .step-num {
+    width:44px;height:44px; border-radius:50%;
+    background:var(--bark); color:var(--cream);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700;
+    margin-bottom:20px;
+  }
+  .step:nth-child(2) .step-num{background:var(--amber);color:var(--ink)}
+  .step:nth-child(3) .step-num{background:var(--sage);color:#fff}
+  .step:nth-child(4) .step-num{background:var(--terra);color:#fff}
+  .step-emoji { font-size:1.6rem; margin-bottom:12px; display:block; }
+  .step-title { font-family:'Fraunces',serif; font-size:1.15rem; font-weight:700; color:var(--bark); margin-bottom:8px; }
+  .step-desc { font-size:0.85rem; color:var(--muted); line-height:1.6; }
+
+  /* FEATURES */
+  .features {
+    padding: 120px 64px;
+    background: var(--cream);
+  }
+  .features-header { text-align:center; margin-bottom:72px; }
+  .features-grid {
+    display:grid; grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap:16px;
+  }
+  .feat-card {
+    background:var(--warm-white);
+    border:1px solid var(--border);
+    border-radius:22px; padding:36px;
+    transition: all 0.3s;
+    position:relative; overflow:hidden;
+  }
+  .feat-card:hover { transform:translateY(-4px); box-shadow:0 24px 64px rgba(61,43,31,0.1); }
+  .feat-card.large { grid-row: span 2; }
+  .feat-card.dark {
+    background: var(--bark); color:var(--cream);
+    border-color:var(--bark);
+  }
+  .feat-card.amber-bg {
+    background: linear-gradient(135deg, #E8A83A 0%, #C8821A 100%);
+    border-color:var(--amber);
+  }
+  .feat-icon { font-size:2.2rem; margin-bottom:20px; display:block; }
+  .feat-title {
+    font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700;
+    color:var(--bark); margin-bottom:10px;
+  }
+  .feat-card.dark .feat-title { color:var(--cream); }
+  .feat-card.amber-bg .feat-title { color:var(--ink); }
+  .feat-desc { font-size:0.88rem; color:var(--muted); line-height:1.65; }
+  .feat-card.dark .feat-desc { color:rgba(245,240,232,0.65); }
+  .feat-card.amber-bg .feat-desc { color:rgba(26,22,18,0.75); }
+
+  /* Large card visual */
+  .feat-visual {
+    margin-top:28px;
+    background: var(--cream); border-radius:14px;
+    padding:18px; border:1px solid var(--border);
+  }
+  .timeline-item {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:10px 0; border-bottom:1px solid var(--border);
+  }
+  .timeline-item:last-child{border:none}
+  .tl-dot { width:10px;height:10px;border-radius:50%; flex-shrink:0; margin-top:4px; }
+  .tl-info { flex:1; }
+  .tl-title { font-size:0.82rem; font-weight:600; color:var(--bark); }
+  .tl-date { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); }
+
+  /* DATA PROTOCOL */
+  .protocol {
+    padding: 120px 64px;
+    background: var(--bark);
+    color: var(--cream);
+  }
+  .protocol-header { margin-bottom:72px; }
+  .protocol-header .section-label { color:var(--amber-light); }
+  .protocol-header .section-title { color:var(--cream); }
+  .protocol-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+    background: rgba(245,240,232,0.08);
+    border-radius:20px; overflow:hidden;
+  }
+  .proto-cell {
+    padding:44px 36px;
+    background:var(--bark);
+    border-right: 1px solid rgba(245,240,232,0.08);
+    transition: background 0.3s;
+  }
+  .proto-cell:last-child{border:none}
+  .proto-cell:hover { background: rgba(245,240,232,0.04); }
+  .proto-num {
+    font-family:'Fraunces',serif;
+    font-size:3.5rem; font-weight:900;
+    color: rgba(200,130,26,0.25);
+    line-height:1; margin-bottom:16px;
+  }
+  .proto-title {
+    font-family:'Fraunces',serif; font-size:1.2rem;
+    color:var(--cream); margin-bottom:10px;
+  }
+  .proto-desc { font-size:0.85rem; color:rgba(245,240,232,0.55); line-height:1.65; }
+  .proto-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
+  .proto-tag {
+    font-family:'DM Mono',monospace; font-size:0.65rem;
+    letter-spacing:0.08em; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px;
+    border:1px solid rgba(200,130,26,0.3);
+    color:var(--amber-light);
+  }
+
+  /* WHO WE SERVE */
+  .serve {
+    padding: 120px 64px;
+    background: var(--warm-white);
+    border-top:1px solid var(--border);
+  }
+  .serve-header { text-align:center; margin-bottom:72px; }
+  .serve-cards { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .serve-card {
+    border-radius:24px; padding:52px 44px;
+    position:relative; overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .serve-card.pet-parent { background: linear-gradient(135deg,#FDF6E8 0%,#F0E0B8 100%); }
+  .serve-card.vet { background: linear-gradient(135deg,#EDF3EC 0%,#C8D8C4 100%); }
+  .serve-emoji-big { font-size:4rem; margin-bottom:24px; display:block; }
+  .serve-title { font-family:'Fraunces',serif; font-size:1.8rem; font-weight:700; color:var(--bark); margin-bottom:12px; }
+  .serve-desc { font-size:0.95rem; color:var(--muted); line-height:1.7; margin-bottom:28px; max-width:340px; }
+  .serve-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .serve-list li {
+    display:flex; align-items:center; gap:10px;
+    font-size:0.88rem; color:var(--bark);
+  }
+  .serve-list li::before { content:'→'; color:var(--amber); font-weight:700; }
+  .serve-deco {
+    position:absolute; bottom:-20px; right:-20px;
+    font-size:8rem; opacity:0.08;
+    line-height:1;
+  }
+
+  /* CTA BANNER */
+  .cta-section {
+    padding: 100px 64px;
+    background: var(--cream);
+    text-align:center;
+    border-top:1px solid var(--border);
+  }
+  .cta-inner { max-width:640px; margin:0 auto; }
+  .cta-section .section-title { margin-bottom:16px; }
+  .cta-section p { font-size:1.05rem; color:var(--muted); margin-bottom:40px; line-height:1.6; }
+  .cta-group { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .btn-big {
+    padding:16px 38px; border-radius:50px;
+    font-weight:600; font-size:1rem;
+    text-decoration:none; transition:all 0.25s;
+    display:flex; align-items:center; gap:10px;
+  }
+  .btn-big.primary { background:var(--bark); color:var(--cream); border:2px solid var(--bark); }
+  .btn-big.primary:hover { background:var(--amber); color:var(--ink); border-color:var(--amber); transform:translateY(-2px); box-shadow:0 12px 40px rgba(200,130,26,0.3); }
+  .btn-big.outline { border:2px solid var(--bark); color:var(--bark); background:transparent; }
+  .btn-big.outline:hover { background:var(--bark); color:var(--cream); transform:translateY(-2px); }
+
+  /* FOOTER */
+  footer {
+    padding: 48px 64px;
+    background: var(--bark); color:var(--cream);
+    display:flex; align-items:center; justify-content:space-between;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .footer-logo { font-family:'Fraunces',serif; font-size:1.4rem; font-weight:700; }
+  .footer-logo span { color:var(--amber); }
+  .footer-links { display:flex; gap:28px; }
+  .footer-links a { color:rgba(245,240,232,0.45); text-decoration:none; font-size:0.82rem; transition:color 0.2s; }
+  .footer-links a:hover { color:var(--cream); }
+  .footer-copy { font-family:'DM Mono',monospace; font-size:0.7rem; color:rgba(245,240,232,0.3); }
+
+  /* Scroll reveal */
+  .reveal { opacity:0; transform:translateY(30px); transition:all 0.7s cubic-bezier(0.16,1,0.3,1); }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+  .reveal-delay-1 { transition-delay:0.1s }
+  .reveal-delay-2 { transition-delay:0.2s }
+  .reveal-delay-3 { transition-delay:0.3s }
+  .reveal-delay-4 { transition-delay:0.4s }
+
+  @media(max-width:900px){
+    nav{padding:16px 24px}
+    .nav-links{display:none}
+    .hero{grid-template-columns:1fr;padding-top:80px}
+    .hero-left{padding:48px 24px}
+    .hero-right{min-height:420px}
+    .how,.features,.protocol,.serve,.cta-section{padding:72px 24px}
+    .how-steps,.features-grid,.protocol-grid,.serve-cards{grid-template-columns:1fr}
+    .features-grid .feat-card.large{grid-row:span 1}
+    footer{flex-direction:column;gap:24px;text-align:center;padding:36px 24px}
+    .footer-links{flex-wrap:wrap;justify-content:center}
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg class="paw-icon" viewBox="0 0 28 28" fill="none">
+      <ellipse cx="14" cy="16" rx="7" ry="8" fill="#C8821A" opacity="0.9"/>
+      <ellipse cx="7" cy="11" rx="3" ry="4" fill="#C8821A" opacity="0.7"/>
+      <ellipse cx="21" cy="11" rx="3" ry="4" fill="#C8821A" opacity="0.7"/>
+      <ellipse cx="11" cy="7" rx="2.5" ry="3" fill="#C8821A" opacity="0.6"/>
+      <ellipse cx="17" cy="7" rx="2.5" ry="3" fill="#C8821A" opacity="0.6"/>
+    </svg>
+    Pet<span>Olife</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#protocol">Protocol</a></li>
+    <li><a href="#who">For You</a></li>
+    <li><a href="#cta" class="nav-cta">Join Waitlist</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Introducing · Pet Identity Protocol v1.0</div>
+    <h1 class="hero-title">
+      Every pet<br>
+      <em>deserves a</em>
+      <span class="outline">digital</span>
+      soul.
+    </h1>
+    <p class="hero-sub">
+      PetOlife creates a Unified Digital Identity for every pet — connecting parents, vets, and care providers through one trusted data layer.
+    </p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn-primary">
+        Get Early Access
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8h10M9 4l4 4-4 4"/><path d="M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="#how" class="btn-ghost">See how it works →</a>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-num">1B+</div>
+        <div class="stat-label">Pets Globally</div>
+      </div>
+      <div>
+        <div class="stat-num">0</div>
+        <div class="stat-label">Unified Records</div>
+      </div>
+      <div>
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Opportunity</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-bg-circle"></div>
+
+    <!-- Floating badges -->
+    <div class="float-badge fb1">
+      <span class="fb-icon">🩺</span>
+      <span>Vet verified <span class="badge-dot"></span></span>
+    </div>
+    <div class="float-badge fb2">
+      <span class="fb-icon">💉</span>
+      <span>Vaccines up to date</span>
+    </div>
+    <div class="float-badge fb3">
+      <span class="fb-icon">📍</span>
+      <span>Location linked</span>
+    </div>
+
+    <div class="hero-card-stack">
+      <div class="pet-id-card">
+        <div class="card-header">
+          <div class="card-logo">PetOlife ID</div>
+          <div class="card-badge">✓ Verified</div>
+        </div>
+        <div class="card-pet-row">
+          <div class="pet-avatar">🐕</div>
+          <div>
+            <div class="pet-name">Bruno</div>
+            <div class="pet-breed">Labrador Retriever · 3y 2m</div>
+            <div class="pet-id-num">PO-2024-LB-00419</div>
+          </div>
+        </div>
+        <div class="card-data-grid">
+          <div class="data-chip">
+            <div class="data-chip-label">Weight</div>
+            <div class="data-chip-value">28.4 kg</div>
+          </div>
+          <div class="data-chip">
+            <div class="data-chip-label">Blood Type</div>
+            <div class="data-chip-value">DEA 1.1+</div>
+          </div>
+          <div class="data-chip">
+            <div class="data-chip-label">Last Visit</div>
+            <div class="data-chip-value">Apr 28</div>
+          </div>
+          <div class="data-chip">
+            <div class="data-chip-label">Next Due</div>
+            <div class="data-chip-value">Jul 15</div>
+          </div>
+        </div>
+        <div class="card-pulse-bar">
+          <span class="pulse-label">Vitals</span>
+          <div class="pulse-waves">
+            <div class="pw" style="height:40%"></div>
+            <div class="pw" style="height:75%"></div>
+            <div class="pw" style="height:50%"></div>
+            <div class="pw" style="height:90%"></div>
+            <div class="pw" style="height:45%"></div>
+            <div class="pw" style="height:80%"></div>
+            <div class="pw" style="height:60%"></div>
+            <div class="pw" style="height:35%"></div>
+            <div class="pw" style="height:70%"></div>
+            <div class="pw" style="height:55%"></div>
+            <div class="pw" style="height:85%"></div>
+            <div class="pw" style="height:40%"></div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div style="display:flex;align-items:center">
+            <div class="card-owners">
+              <div class="owner-dot">R</div>
+              <div class="owner-dot">V</div>
+              <div class="owner-dot">+</div>
+            </div>
+            <span class="owner-label">2 caregivers</span>
+          </div>
+          <!-- Simple QR-like grid -->
+          <div style="width:36px;height:36px;display:grid;grid-template-columns:repeat(6,1fr);gap:1.5px">
+            <div style="background:var(--bark);border-radius:1px;grid-column:span 2;grid-row:span 2"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:var(--bark);border-radius:1px;grid-column:span 2;grid-row:span 2"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:var(--bark);border-radius:1px"></div>
+            <div style="background:transparent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="how-header reveal">
+    <div class="section-label">The Protocol</div>
+    <h2 class="section-title">From scattered records<br>to a single source of truth.</h2>
+  </div>
+  <div class="how-steps">
+    <div class="step reveal">
+      <div class="step-num">1</div>
+      <span class="step-emoji">🐾</span>
+      <div class="step-title">Create Pet Identity</div>
+      <div class="step-desc">Register your pet with a permanent, unique PetOlife ID. One profile that follows them for life.</div>
+    </div>
+    <div class="step reveal reveal-delay-1">
+      <div class="step-num">2</div>
+      <span class="step-emoji">🏥</span>
+      <div class="step-title">Connect Your Vet</div>
+      <div class="step-desc">Your veterinarian joins the network and contributes verified health records directly to the profile.</div>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <div class="step-num">3</div>
+      <span class="step-emoji">🔄</span>
+      <div class="step-title">Data Flows Seamlessly</div>
+      <div class="step-desc">Vaccinations, diagnoses, medications, allergies — all synced in real time, accessible anywhere.</div>
+    </div>
+    <div class="step reveal reveal-delay-3">
+      <div class="step-num">4</div>
+      <span class="step-emoji">🛡️</span>
+      <div class="step-title">Always Protected</div>
+      <div class="step-desc">You own the data. Granular permissions control exactly who sees what, always encrypted end-to-end.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-header reveal">
+    <div class="section-label">Built Different</div>
+    <h2 class="section-title">Infrastructure-grade care,<br>pet-parent simple.</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card large reveal">
+      <span class="feat-icon">📋</span>
+      <div class="feat-title">Lifetime Health Timeline</div>
+      <div class="feat-desc">Every vet visit, prescription, and milestone — organized chronologically, searchable instantly. No more lost paper records or blurry photos.</div>
+      <div class="feat-visual">
+        <div class="timeline-item">
+          <div class="tl-dot" style="background:var(--sage)"></div>
+          <div class="tl-info">
+            <div class="tl-title">Annual Vaccination · Rabies + DHPP</div>
+            <div class="tl-date">Dr. Mehta · City Pet Clinic · Apr 28, 2025</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-dot" style="background:var(--amber)"></div>
+          <div class="tl-info">
+            <div class="tl-title">Prescription: Apoquel 16mg</div>
+            <div class="tl-date">Dr. Sharma · PawCare Hospital · Feb 12, 2025</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-dot" style="background:var(--terra)"></div>
+          <div class="tl-info">
+            <div class="tl-title">Allergy flagged: Chicken protein</div>
+            <div class="tl-date">Dr. Mehta · City Pet Clinic · Jan 3, 2025</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-dot" style="background:var(--sage)"></div>
+          <div class="tl-info">
+            <div class="tl-title">Deworming complete · Milbemax</div>
+            <div class="tl-date">Dr. Kapoor · Green Paws · Nov 20, 2024</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feat-card dark reveal reveal-delay-1">
+      <span class="feat-icon">🔐</span>
+      <div class="feat-title">You Own The Data</div>
+      <div class="feat-desc">Role-based access control. Share with groomers, pet-sitters, or boarding houses with one tap. Revoke anytime.</div>
+    </div>
+    <div class="feat-card amber-bg reveal reveal-delay-2">
+      <span class="feat-icon">🤝</span>
+      <div class="feat-title">Vet Network</div>
+      <div class="feat-desc">Verified clinics update your pet's record directly after every visit. No more transcription errors.</div>
+    </div>
+    <div class="feat-card reveal reveal-delay-1">
+      <span class="feat-icon">🔔</span>
+      <div class="feat-title">Smart Reminders</div>
+      <div class="feat-desc">Never miss a booster, deworming, or annual check-up. Reminders adapt as your vet updates the schedule.</div>
+    </div>
+    <div class="feat-card reveal reveal-delay-2">
+      <span class="feat-icon">🌐</span>
+      <div class="feat-title">Travel Ready</div>
+      <div class="feat-desc">International health certificates, destination requirements, and QR-verified identity — all in one place.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROTOCOL -->
+<section class="protocol" id="protocol">
+  <div class="protocol-header reveal">
+    <div class="section-label">The Data Layer</div>
+    <h2 class="section-title">A protocol, not just an app.</h2>
+  </div>
+  <div class="protocol-grid">
+    <div class="proto-cell reveal">
+      <div class="proto-num">01</div>
+      <div class="proto-title">Identity Layer</div>
+      <div class="proto-desc">A permanent, portable pet identifier that lives across every platform and provider in the ecosystem.</div>
+      <div class="proto-tags">
+        <span class="proto-tag">UUID</span>
+        <span class="proto-tag">Biometrics</span>
+        <span class="proto-tag">Microchip Link</span>
+      </div>
+    </div>
+    <div class="proto-cell reveal reveal-delay-1">
+      <div class="proto-num">02</div>
+      <div class="proto-title">Health Record API</div>
+      <div class="proto-desc">Structured medical data that any authorized vet system can read and write through a standardized protocol.</div>
+      <div class="proto-tags">
+        <span class="proto-tag">HL7 FHIR</span>
+        <span class="proto-tag">REST API</span>
+        <span class="proto-tag">Webhooks</span>
+      </div>
+    </div>
+    <div class="proto-cell reveal reveal-delay-2">
+      <div class="proto-num">03</div>
+      <div class="proto-title">Trust & Consent</div>
+      <div class="proto-desc">Every data transaction is logged, permissioned, and reversible. A trust graph connecting all parties transparently.</div>
+      <div class="proto-tags">
+        <span class="proto-tag">End-to-End Encryption</span>
+        <span class="proto-tag">Audit Trail</span>
+        <span class="proto-tag">GDPR Aligned</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO WE SERVE -->
+<section class="serve" id="who">
+  <div class="serve-header reveal">
+    <div class="section-label">For Everyone Who Cares</div>
+    <h2 class="section-title">Built for both sides of the leash.</h2>
+  </div>
+  <div class="serve-cards">
+    <div class="serve-card pet-parent reveal">
+      <span class="serve-emoji-big">🏡</span>
+      <div class="serve-title">Pet Parents</div>
+      <div class="serve-desc">One app holds your pet's entire world. Never scramble for records at the vet again.</div>
+      <ul class="serve-list">
+        <li>All health records in one place</li>
+        <li>Smart vaccination reminders</li>
+        <li>Emergency QR access for anyone</li>
+        <li>Multi-pet management</li>
+        <li>Travel & boarding documents</li>
+      </ul>
+      <div class="serve-deco">🐶</div>
+    </div>
+    <div class="serve-card vet reveal reveal-delay-1">
+      <span class="serve-emoji-big">🩺</span>
+      <div class="serve-title">Veterinarians</div>
+      <div class="serve-desc">Complete patient history, instantly. Less paperwork. Better care. Stronger client trust.</div>
+      <ul class="serve-list">
+        <li>Full history before consult</li>
+        <li>One-click record update</li>
+        <li>Referral-ready summaries</li>
+        <li>Drug interaction alerts</li>
+        <li>Clinic network discovery</li>
+      </ul>
+      <div class="serve-deco">🏥</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <div class="cta-inner">
+    <div class="section-label reveal">Early Access</div>
+    <h2 class="section-title reveal">Your pet's story<br>starts here.</h2>
+    <p class="reveal">Be among the first to give your pet the digital identity they deserve. Join thousands of pet parents and veterinarians on the waitlist.</p>
+    <div class="cta-group reveal">
+      <a href="#" class="btn-big primary">🐾 Join the Waitlist</a>
+      <a href="#" class="btn-big outline">For Veterinarians →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Pet<span>O</span>life</div>
+  <div class="footer-links">
+    <a href="#">About</a>
+    <a href="#">Blog</a>
+    <a href="#">For Vets</a>
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+  </div>
+  <div class="footer-copy">© 2025 PetOlife · We stand with pets 🐾</div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring   = document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX; my=e.clientY;
+    cursor.style.left=mx+'px'; cursor.style.top=my+'px';
+  });
+  (function animRing(){
+    rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(animRing);
+  })();
+  document.querySelectorAll('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ring.style.width='54px';ring.style.height='54px';ring.style.opacity='0.3'});
+    el.addEventListener('mouseleave',()=>{ring.style.width='36px';ring.style.height='36px';ring.style.opacity='0.6'});
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); }
+    });
+  },{threshold:0.12});
+  reveals.forEach(r=>obs.observe(r));
+
+  // Animated stats counter
+  function animCount(el, target, suffix=''){
+    let start=0, dur=1800, startTime=null;
+    const step=ts=>{
+      if(!startTime) startTime=ts;
+      const p=Math.min((ts-startTime)/dur,1);
+      const val=Math.floor(p*target);
+      el.textContent=(suffix==='∞'?'∞': val+suffix);
+      if(p<1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  const statsObs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const nums=e.target.querySelectorAll('.stat-num');
+        nums.forEach(n=>{
+          const t=n.textContent;
+          if(t.includes('B')) animCount(n,1,'B+');
+          else if(t==='0') animCount(n,0,'');
+          else if(t==='∞') {/* keep */}
+        });
+        statsObs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.5});
+  document.querySelectorAll('.hero-stats').forEach(s=>statsObs.observe(s));
+</script>
+</body>
+</html>
